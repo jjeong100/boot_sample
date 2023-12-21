@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bootsample.mapper.SaveSampleMapper">
+    
+    <select id="getParRowCheck" parameterType="SaveSampleDto" resultType="Integer">
+        select
+            count(*)
+        from
+            process.loyalty_program
+        where
+            person_account_id = #{contactId}
+    </select>
+    
+    <insert id="insertObject" parameterType="SaveSampleDto"  useGeneratedKeys="true" keyProperty="rowId" keyColumn="row_id">
+        insert into landing.if_register_in_app_ws
+        (
+            created
+            , created_by
+            , last_upd
+            , last_upd_by
+            , contactid
+            , appsource
+            , appstatus
+        )
+        values
+        (
+            now()
+            , 'interface'
+            , now()
+            , 'interface'
+            , #{contactId}
+            , #{appSource}
+            , #{appStatus}
+        );
+    </insert>
+
+    <insert id="transferProcess" statementType="CALLABLE" parameterType="hashMap">
+        call process.if_register_in_app_ws(#{PARAM_ID,jdbcType=VARCHAR,mode=IN}, #{checkcu,jdbcType=VARCHAR,mode=IN});
+    </insert>
+
+    <insert id="transferReplica" statementType="CALLABLE" parameterType="hashMap">
+        call replica.if_register_in_app_ws(#{ACCOUNT_ID,jdbcType=VARCHAR,mode=IN}, #{checkcu,jdbcType=VARCHAR,mode=IN});
+    </insert>
+
+    <select id="getObject" parameterType="SaveSampleDto" resultType="String"> 
+        select             
+            loyaltystatus__c as loyaltyStatus
+        from 
+            process.account
+        where
+            row_id = #{contactId}
+    </select>
+    
+</mapper>

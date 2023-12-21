@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bootsample.mapper.SelectSampleMapper">
+    
+    <select id="getSatisfactionSurveyList" parameterType="SelectSampleDto" resultType="SatisfactionSurveyDto">
+        select 
+            pas.row_id as assetId
+            , pas.serialnumber as vin
+            , pas.fsc__c as fscOcn
+            , pas."name"  as description
+            , pas.billing_date__c as assignedDate
+            , pas.purch_loc_desc__c as fiscalReceipt
+            , pas.account_row_id__c as dealerId
+            , pas.dealercode__c as dealerCode
+            , pac."name" as dealerName
+            , pac.corporaterepresentativename__c as dealerNickname
+            , pas.salesman__c as salesManName
+            , pas.dlr_con_int_id__c as salesManNumber
+            , pcvb.account_id as businessAccountId
+            , pcvp.account_id as personAccountId
+        from
+            process.asset pas
+        join
+            process.account pac
+        on
+            pas.dealercode__c = pac.dealercode__c
+        join 
+            process.customer_vehicle pcvb
+        on
+            pas.row_id = pcvb.asset_id and pcvb.cv_type = 'Business' and pcvb.status_cd = 'Active'
+        join 
+            process.customer_vehicle pcvp
+        on
+            pas.row_id = pcvp.asset_id and pcvp.cv_type = 'Person' and pcvp.status_cd = 'Active'
+        where 
+            pas.billing_date__c <![CDATA[ >= ]]> to_date(#{startDate}, 'YYYY-MM-DD')
+        and
+            pas.billing_date__c <![CDATA[ <= ]]> to_date(#{endDate}, 'YYYY-MM-DD')
+        and
+            pas.status in ('IMPL_PHASE', 'Customer Owned')
+        and 
+            pas.oper_status_cd__c = 'ZV01'
+    </select>
+
+    <select id="getContact" parameterType="String" resultType="SurveyContactDto">
+        select
+            pac.row_id as id
+            , pac.integrationid as integrationId
+            , pac.firstname as firstName
+            , pac.lastname as lastName
+            , pac.cpf__c as document
+            , pac.gender__pc as sex
+            , pac.type as personType
+            , pac.billingpostalcode as postalCode
+            , pac.billingstreet as street
+            , pac.billingstreet_2__c as number
+            , pac.billingstreet_3__c as complement
+            , pac.billingcountry as county
+            , pac.billingcity as city
+            , pac.billingstate as state
+            , pac.personhomephone as homePhone
+            , pac.companyphone__pc as workPhone
+            , pac.personmobilephone as cellularPhone
+            , pac.personemail as email
+        from
+            process.account pac
+        where 
+            pac.row_id = #{personAccountId}
+    </select>
+
+    <select id="getAccount" parameterType="String" resultType="SurveyAccountDto">
+        select 
+            pac.row_id as id
+            , pac.integrationid as integrationId
+            , pac.name as name 
+            , pac.corporaterepresentativename__c as nickname
+            , pac.corporateregistrationnumber__c as document
+            , pac.type as personType
+            , pac.billingpostalcode as zipCode
+            , pac.billingstreet as streetAddress
+            , pac.billingstreet_2__c as streetAddress2
+            , pac.billingstreet_3__c as streetAddress3
+            , pac.billingcountry as county
+            , pac.billingcity as city
+            , pac.billingstate as state
+            , pac.phone as mainPhone
+            , pac.fax as fax
+            , pac.emailaddress__c as mainEmailAddress
+        from
+            process.account pac
+        where 
+            pac.row_id = #{businessAccountId}
+    </select>
+</mapper>

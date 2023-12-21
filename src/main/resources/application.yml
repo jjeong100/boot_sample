@@ -1,0 +1,56 @@
+
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${RESOURCESERVER_URL}
+
+  data:
+    redis:
+      host: ${REDIS_URL}
+      port: ${REDIS_PORT}
+    cache:
+      type: redis
+
+---
+
+spring:
+  datasource:
+    url: ${DATASOURCE_URL}
+    username: ${DATASOURCE_USERNAME}
+    password: ${DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 3000
+      validation-timeout: 3000
+      minimum-idle: 10
+      max-lifetime: 240000
+      maximum-pool-size: 200
+---
+
+logging:
+  level:
+    org.hibernate.SQL: info
+    root: info
+    com.zaxxer.hikari.pool.HikariPool: debug
+
+---
+springdoc:
+  api-docs:
+    groups:
+      enabled: true
+  swagger-ui:
+    display-request-duration: true
+    groups-order: DESC
+    operationsSorter: method
+    disable-swagger-default-url: true
+    display-query-params-without-oauth2: true
+    
+  show-actuator: true
+  group-configs:
+  - group: Lead
+    packages-to-scan: 
+      - com.bootsample.controller.sample
+      - com.bootsample.controller.accesstocken
