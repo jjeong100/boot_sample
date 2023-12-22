@@ -1,22 +1,32 @@
 package com.bootsample.config;
 
+
+
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HttpBasicConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.bootsample.config.filter.CustomAuthenticationEntryPoint;
 import com.bootsample.config.filter.CustomAuthenticationFilter;
+import com.bootsample.config.handler.CustomAccessDeniedHandler;
 import com.bootsample.config.handler.CustomAuthFailureHandler;
 import com.bootsample.config.handler.CustomAuthSuccessHandler;
 import com.bootsample.config.handler.CustomAuthenticationProvider;
+
+import jakarta.validation.constraints.NotNull;
 
 //import com.adjh.multiflexapi.config.filter.CustomAuthenticationFilter;
 //import com.adjh.multiflexapi.config.handler.CustomAuthFailureHandler;
@@ -52,31 +62,75 @@ public class WebSecurityConfig {
      * @return SecurityFilterChain
      * @throws Exception Exception
      */
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
-        // [STEP1] 서버에 인증정보를 저장하지 않기에 csrf를 사용하지 않는다.
-        http.csrf().disable();
-
-        // [STEP2] form 기반의 로그인에 대해 비 활성화하며 커스텀으로 구성한 필터를 사용한다.
-        http.formLogin().disable();
-
-        // [STEP3] 토큰을 활용하는 경우 모든 요청에 대해 '인가'에 대해서 사용.
-        http.authorizeHttpRequests((authz) -> authz.anyRequest().permitAll());
-
-        // [STEP4] Spring Security Custom Filter Load - Form '인증'에 대해서 사용
-        http.addFilterBefore(customAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
-
-        // [STEP5] Session 기반의 인증기반을 사용하지 않고 추후 JWT를 이용하여서 인증 예정
-        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-
-        // [STEP6] Spring Security JWT Filter Load
-//        http.addFilterBefore(jwtAuthorizationFilter(), BasicAuthenticationFilter.class);
-
-        // [STEP7] 최종 구성한 값을 사용함.
+//    @Bean
+//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+//
+//        // [STEP1] 서버에 인증정보를 저장하지 않기에 csrf를 사용하지 않는다.
+//        http.csrf().disable();
+//
+//        // [STEP2] form 기반의 로그인에 대해 비 활성화하며 커스텀으로 구성한 필터를 사용한다.
+//        http.formLogin().disable();
+//
+//        // [STEP3] 토큰을 활용하는 경우 모든 요청에 대해 '인가'에 대해서 사용.
+//        http.authorizeHttpRequests((authz) -> authz.anyRequest().permitAll());
+//
+//        // [STEP4] Spring Security Custom Filter Load - Form '인증'에 대해서 사용
+//        http.addFilterBefore(customAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+//
+//        // [STEP5] Session 기반의 인증기반을 사용하지 않고 추후 JWT를 이용하여서 인증 예정
+//        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+//
+//        // [STEP6] Spring Security JWT Filter Load
+////        http.addFilterBefore(jwtAuthorizationFilter(), BasicAuthenticationFilter.class);
+//
+//        // [STEP7] 최종 구성한 값을 사용함.
+//        return http.build();
+//    }
+    
+    /** 구 버전 
+    public SecurityFilterChain filterChain(final @NotNull HttpSecurity http) throws Exception {
+        http
+                .httpBasic().disable()
+                .csrf().disable()
+                .cors().and()
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .authorizeHttpRequests(authorize ->
+                        authorize
+                           .requestMatchers("/actuator/**", "/swagger-ui/**", "/sign/**",
+                                        "/api-docs/swagger-config", "/sign-in", "/sign-up").permitAll()
+                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                )
+                .exceptionHandling().authenticationEntryPoint(new CustomAuthenticationEntryPoint())
+                .and()
+                .exceptionHandling().accessDeniedHandler(new CustomAccessDeniedHandler())
+                .and()
+                .addFilterBefore(new JwtAuthenticationFilter(this.userDetailsService, this.jwtTokenResolver),
+                        UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
-
+    **/
+    
+    @Bean
+    public SecurityFilterChain filterChain(final @NotNull HttpSecurity http) throws Exception {
+        http.httpBasic(HttpBasicConfigurer::disable)
+                .csrf(CsrfConfigurer::disable)
+                .cors(Customizer.withDefaults())
+                .sessionManagement(configurer -> configurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests((authz) -> authz.anyRequest().permitAll())
+//                .authorizeHttpRequests(authorize ->
+//                        authorize
+//                                .requestMatchers("/actuator/**", "/swagger-ui/**", "/sign/**",
+//                                        "/api-docs/swagger-config", "/sign-in", "/sign-up").permitAll()
+//                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+//                )
+                .exceptionHandling(authenticationManager -> authenticationManager
+                .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
+                .accessDeniedHandler(new CustomAccessDeniedHandler()))
+//                .addFilterBefore(new JwtAuthenticationFilter(this.userDetailsService, this.jwtTokenResolver), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(customAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
 
     /**
      * 3. authenticate 의 인증 메서드를 제공하는 매니져로'Provider'의 인터페이스를 의미합니다.
